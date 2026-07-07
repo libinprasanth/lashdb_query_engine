@@ -1,0 +1,19 @@
+[package]
+name = "flashdb_query_engine"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+bytemuck = { version = "1.16", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlparser = "0.30"
+memmap2 = "0.9" # Memory-mapped I/O for 10-20x faster block access
+lru = "0.12" # LRU cache for frequently accessed blocks
+crossbeam = "0.8" # Lock-free data structures and channels
+rayon = "1.8" # Data parallelism for SIMD-like operations
+parking_lot = "0.12" # Faster mutexes and RwLocks
+uuid = { version = "1.6", features = ["v4"] } # For connection IDs
+tiny_http = "0.12" # Simple HTTP server for web UI
+minify-html = "0.10" # HTML minification
+base64 = "0.22" # For basic auth

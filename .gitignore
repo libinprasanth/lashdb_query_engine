@@ -1,0 +1,4 @@
+target/
+*.db
+*.fdb
+.DS_Store
