@@ -34,3 +34,5 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .compass-empty { padding: 40px; text-align: center; color: #666; font-size: 14px; }
 .compass-documents { padding: 16px; }
 .compass-document { background: #161b22; padding: 12px 16px; border-radius: 4px; margin-bottom: 8px; font-family: monospace; font-size: 12px; }
+.compass-delete-btn { margin-left: auto; background: transparent; border: none; color: #da3633; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; }
+.compass-delete-btn:hover { background: #da3633; color: #fff; }

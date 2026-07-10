@@ -41,9 +41,38 @@ pub fn execute_sql(engine: &mut EngineStorage, sql: &str) -> Result<String> {
             ..
         } => execute_insert(engine, table_name, columns, source),
         Statement::Query(query) => evaluate_query(engine, &query),
+        Statement::Drop {
+            object_type,
+            names,
+            ..
+        } => execute_drop(engine, object_type, names),
         _ => Err(Error::new(
             ErrorKind::InvalidInput,
-            "only SELECT, CREATE TABLE, INSERT, and CREATE USER are currently supported",
+            "only SELECT, CREATE TABLE, INSERT, DROP TABLE, and CREATE USER are currently supported",
+        )),
+    }
+}
+
+fn execute_drop(
+    engine: &mut EngineStorage,
+    object_type: sqlparser::ast::ObjectType,
+    names: Vec<ObjectName>,
+) -> Result<String> {
+    match object_type {
+        sqlparser::ast::ObjectType::Table => {
+            if names.len() != 1 {
+                return Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    "DROP TABLE supports only a single table",
+                ));
+            }
+            let table_name = normalize_object_name(&names[0]);
+            engine.delete_table(&table_name)?;
+            Ok(format!("TABLE {} DROPPED", table_name))
+        }
+        _ => Err(Error::new(
+            ErrorKind::InvalidInput,
+            "only DROP TABLE is supported",
         )),
     }
 }

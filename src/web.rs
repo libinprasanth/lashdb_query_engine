@@ -124,6 +124,29 @@ impl WebUI {
                 };
                 let _ = request.respond(response);
             }
+            "/api/delete-table" => {
+                let mut content = String::new();
+                let _ = request
+                    .as_reader()
+                    .read_to_string(&mut content);
+                
+                let table_name = content.trim();
+                let response = match engine.write().delete_table(table_name) {
+                    Ok(()) => {
+                        let json = serde_json::json!({"result": format!("TABLE {} DROPPED", table_name)});
+                        Response::from_string(json.to_string())
+                            .with_status_code(200)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string()});
+                        Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                };
+                let _ = request.respond(response);
+            }
             _ => {
                 let response = Response::from_string("Not Found")
                     .with_status_code(404);

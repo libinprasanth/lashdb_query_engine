@@ -146,6 +146,34 @@ impl EngineStorage {
         self.save_catalog(&catalog)
     }
 
+    pub fn delete_table(&mut self, table_name: &str) -> Result<()> {
+        if Self::is_reserved_table(table_name) {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                format!("{} is a reserved table and cannot be deleted", table_name),
+            ));
+        }
+
+        let mut catalog = self.load_catalog()?;
+        let initial_len = catalog.tables.len();
+        catalog.tables.retain(|schema| !schema.name.eq_ignore_ascii_case(table_name));
+
+        if catalog.tables.len() == initial_len {
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                format!("table not found: {}", table_name),
+            ));
+        }
+
+        // Remove the table file
+        let table_path = self.table_file(table_name);
+        if table_path.exists() {
+            std::fs::remove_file(table_path)?;
+        }
+
+        self.save_catalog(&catalog)
+    }
+
     pub fn insert_into_table(&mut self, table_name: &str, columns: &[String], values: Vec<JsonValue>) -> Result<()> {
         let schema = self.get_table_schema(table_name)?;
         let mut row = vec![JsonValue::Null; schema.columns.len()];

@@ -6,11 +6,39 @@ async function loadTables() {
             <div class="compass-table-item" onclick="selectTable('${t.name}')">
                 <i class="material-icons icon">table_chart</i>
                 <span class="name">${t.name}</span>
+                <button class="compass-delete-btn" onclick="deleteTable('${t.name}', event)">
+                    <i class="material-icons" style="font-size: 16px;">delete</i>
+                </button>
             </div>
         `).join('');
         document.getElementById('tables').innerHTML = html || '<div class="compass-empty">No tables found</div>';
     } catch (e) {
         document.getElementById('tables').innerHTML = '<div class="compass-empty">Error loading tables</div>';
+    }
+}
+
+async function deleteTable(tableName, event) {
+    event.stopPropagation();
+    if (!confirm(`Are you sure you want to delete table "${tableName}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/delete-table', {
+            method: 'POST',
+            body: tableName
+        });
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+        } else {
+            loadTables();
+            document.getElementById('sql').value = '';
+            document.getElementById('result').style.display = 'none';
+        }
+    } catch (e) {
+        alert(`Error: ${e.toString()}`);
     }
 }
 
