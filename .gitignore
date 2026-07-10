@@ -2,3 +2,6 @@ target/
 *.db
 *.fdb
 .DS_Store
+*/node_moduels
+**/dist
+**/node_modules

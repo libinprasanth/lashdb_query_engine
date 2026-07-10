@@ -98,13 +98,38 @@ src/
 ├── storage.rs       # File-backed storage engine
 ├── sql.rs           # SQL parser and executor
 ├── web.rs           # Web UI server
-├── web_static/      # Static web assets
-│   ├── style.css    # UI styles
-│   └── script.js    # UI JavaScript
+├── web_static/      # Vite + React + Tailwind frontend
+│   ├── index.html   # HTML entry point
+│   ├── main.js      # JavaScript entry point
+│   ├── style.css    # UI styles (Tailwind)
+│   ├── package.json # Node.js dependencies
+│   ├── vite.config.js # Vite configuration
+│   ├── tailwind.config.js # Tailwind configuration
+│   └── src/
+│       ├── main.jsx # React entry point
+│       └── App.jsx  # Main React component
 ├── server.rs        # TCP server
 ├── metrics.rs       # Time-series metrics handling
 └── query.rs         # Query utilities
 ```
+
+## Frontend Development
+
+The web UI uses Vite, React, and Tailwind CSS. To work with the frontend:
+
+```bash
+# Install dependencies
+cd src/web_static
+npm install
+
+# Start development server (for local development)
+npm run dev
+
+# Build for production
+npm run build
+```
+
+The built assets are embedded in the Rust binary using `include_str!`, so no separate deployment is needed.
 
 ## Data Storage
 

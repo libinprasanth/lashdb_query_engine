@@ -48,8 +48,8 @@ impl WebUI {
                     .with_header(tiny_http::Header::from_bytes("Content-Type", "text/css; charset=utf-8".as_bytes()).unwrap());
                 let _ = request.respond(response);
             }
-            "/script.js" => {
-                let js = include_str!("web_static/script.js");
+            "/main.js" | "/script.js" => {
+                let js = include_str!("web_static/main.js");
                 let response = Response::from_string(js)
                     .with_status_code(200)
                     .with_header(tiny_http::Header::from_bytes("Content-Type", "application/javascript; charset=utf-8".as_bytes()).unwrap());
@@ -156,66 +156,7 @@ impl WebUI {
     }
 
     fn render_index(&self) -> String {
-        r#"<!DOCTYPE html>
-<html>
-<head>
-    <title>FlashDB - MongoDB Compass Style UI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body>
-    <header class="compass-header">
-        <div class="logo">
-            <div class="logo-icon">
-                <i class="material-icons" style="color: #fff; font-size: 20px;">storage</i>
-            </div>
-            <h1>FlashDB Compass</h1>
-        </div>
-        <div class="connection">localhost:8080</div>
-    </header>
-    
-    <div class="compass-container">
-        <div class="compass-sidebar">
-            <div class="compass-sidebar-header">Collections (Tables)</div>
-            <div class="compass-table-list" id="tables">
-                <div class="compass-empty">Loading...</div>
-            </div>
-        </div>
-        
-        <div class="compass-main">
-            <div class="compass-toolbar">
-                <button class="compass-btn compass-btn-primary" onclick="executeQuery()">
-                    <i class="material-icons" style="font-size: 16px;">play_arrow</i>
-                    Find
-                </button>
-                <button class="compass-btn" onclick="clearQuery()">
-                    <i class="material-icons" style="font-size: 16px;">clear</i>
-                    Clear
-                </button>
-                <button class="compass-btn" onclick="setQuery('SELECT * FROM products LIMIT 10')">
-                    <i class="material-icons" style="font-size: 16px;">table_chart</i>
-                    Products
-                </button>
-                <button class="compass-btn" onclick="setQuery('SELECT * FROM address LIMIT 10')">
-                    <i class="material-icons" style="font-size: 16px;">table_chart</i>
-                    Address
-                </button>
-            </div>
-            
-            <div class="compass-editor-container">
-                <textarea id="sql" class="compass-editor" placeholder="SELECT * FROM products">SELECT * FROM products</textarea>
-                <div id="result" class="compass-result" style="display: none;">
-                    <div class="compass-result-header">Documents</div>
-                    <div id="result-content" class="compass-documents"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="/script.js"></script>
-</body>
-</html>"#.to_string()
+        include_str!("web_static/index.html").to_string()
     }
 }
 
