@@ -3,17 +3,17 @@ async function loadTables() {
         const response = await fetch('/api/tables');
         const tables = await response.json();
         const html = tables.map(t => `
-            <div class="compass-table-item" onclick="selectTable('${t.name}')">
-                <i class="material-icons icon">table_chart</i>
-                <span class="name">${t.name}</span>
-                <button class="compass-delete-btn" onclick="deleteTable('${t.name}', event)">
-                    <i class="material-icons" style="font-size: 16px;">delete</i>
+            <div class="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-gray-800/50 transition-colors compass-table-item" onclick="selectTable('${t.name}')">
+                <i class="material-icons text-emerald-500 text-lg">table_chart</i>
+                <span class="text-sm text-white flex-1">${t.name}</span>
+                <button class="ml-auto bg-transparent border-none text-rose-500 cursor-pointer p-1 rounded hover:bg-rose-500 hover:text-white transition-colors" onclick="deleteTable('${t.name}', event)">
+                    <i class="material-icons text-sm">delete</i>
                 </button>
             </div>
         `).join('');
-        document.getElementById('tables').innerHTML = html || '<div class="compass-empty">No tables found</div>';
+        document.getElementById('tables').innerHTML = html || '<div class="px-4 py-10 text-center text-gray-500 text-sm">No tables found</div>';
     } catch (e) {
-        document.getElementById('tables').innerHTML = '<div class="compass-empty">Error loading tables</div>';
+        document.getElementById('tables').innerHTML = '<div class="px-4 py-10 text-center text-gray-500 text-sm">Error loading tables</div>';
     }
 }
 
@@ -44,8 +44,8 @@ async function deleteTable(tableName, event) {
 
 function selectTable(table) {
     document.getElementById('sql').value = `SELECT * FROM ${table}`;
-    document.querySelectorAll('.compass-table-item').forEach(el => el.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+    document.querySelectorAll('.compass-table-item').forEach(el => el.classList.remove('bg-emerald-600'));
+    event.currentTarget.classList.add('bg-emerald-600');
 }
 
 function setQuery(sql) {
@@ -62,14 +62,14 @@ function formatAsDocuments(result) {
         const data = JSON.parse(result);
         if (Array.isArray(data) && data.length > 0) {
             return data.map((row, idx) => `
-                <div class="compass-document">
-                    <div style="color: #4db33d; margin-bottom: 8px;">Document ${idx + 1}</div>
-                    <pre style="margin: 0; color: #c9d1d9;">${JSON.stringify(row, null, 2)}</pre>
+                <div class="bg-gray-800/50 p-3 rounded-lg mb-2 font-mono text-xs">
+                    <div class="text-emerald-500 mb-2 font-medium">Document ${idx + 1}</div>
+                    <pre class="m-0 text-gray-200">${JSON.stringify(row, null, 2)}</pre>
                 </div>
             `).join('');
         }
     } catch (e) {}
-    return `<div class="compass-error">${escapeHtml(result)}</div>`;
+    return `<div class="bg-rose-600 text-white p-3 rounded-lg">Error: ${escapeHtml(result)}</div>`;
 }
 
 function formatAsTable(result) {
@@ -78,20 +78,22 @@ function formatAsTable(result) {
         if (Array.isArray(data) && data.length > 0) {
             const columns = Object.keys(data[0]);
             return `
-                <table class="compass-result-table">
+                <table class="w-full border-collapse">
                     <thead>
-                        <tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>
+                        <tr class="bg-gray-800/50">${columns.map(c => `<th class="text-left font-medium text-emerald-500 p-3 text-xs">${c}</th>`).join('')}</tr>
                     </thead>
                     <tbody>
                         ${data.map(row => `
-                            <tr>${columns.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>
+                            <tr class="border-b border-gray-700 hover:bg-gray-800/30">
+                                ${columns.map(c => `<td class="p-3 text-gray-200 text-sm">${row[c] ?? ''}</td>`).join('')}
+                            </tr>
                         `).join('')}
                     </tbody>
                 </table>
             `;
         }
     } catch (e) {}
-    return `<div class="compass-error">${escapeHtml(result)}</div>`;
+    return `<div class="bg-rose-600 text-white p-3 rounded-lg">Error: ${escapeHtml(result)}</div>`;
 }
 
 function escapeHtml(text) {
@@ -106,13 +108,13 @@ async function executeQuery() {
     const resultContent = document.getElementById('result-content');
     
     if (!sql.trim()) {
-        resultDiv.style.display = 'block';
-        resultContent.innerHTML = '<div class="compass-error">Please enter a SQL query</div>';
+        resultDiv.style.display = 'flex';
+        resultContent.innerHTML = '<div class="bg-rose-600 text-white p-3 rounded-lg">Please enter a SQL query</div>';
         return;
     }
     
-    resultDiv.style.display = 'block';
-    resultContent.innerHTML = '<div class="compass-empty">Loading...</div>';
+    resultDiv.style.display = 'flex';
+    resultContent.innerHTML = '<div class="px-4 py-10 text-center text-gray-500 text-sm">Loading...</div>';
     
     try {
         const response = await fetch('/api/query', {
@@ -122,13 +124,12 @@ async function executeQuery() {
         const data = await response.json();
         
         if (data.error) {
-            resultContent.innerHTML = `<div class="compass-error">${escapeHtml(data.error)}</div>`;
+            resultContent.innerHTML = `<div class="bg-rose-600 text-white p-3 rounded-lg">Error: ${escapeHtml(data.error)}</div>`;
         } else {
-            // Try table format first, then documents
             resultContent.innerHTML = formatAsTable(data.result) || formatAsDocuments(data.result);
         }
     } catch (e) {
-        resultContent.innerHTML = `<div class="compass-error">Error: ${escapeHtml(e.toString())}</div>`;
+        resultContent.innerHTML = `<div class="bg-rose-600 text-white p-3 rounded-lg">Error: ${escapeHtml(e.toString())}</div>`;
     }
 }
 

@@ -41,18 +41,18 @@ impl WebUI {
                     .with_header(tiny_http::Header::from_bytes("Content-Type", "text/html; charset=utf-8".as_bytes()).unwrap());
                 let _ = request.respond(response);
             }
-            "/style.css" => {
-                let css = include_str!("web_static/style.css");
-                let response = Response::from_string(css)
-                    .with_status_code(200)
-                    .with_header(tiny_http::Header::from_bytes("Content-Type", "text/css; charset=utf-8".as_bytes()).unwrap());
-                let _ = request.respond(response);
-            }
-            "/main.js" | "/script.js" => {
-                let js = include_str!("web_static/main.js");
+            "/assets/index.js" => {
+                let js = include_str!("web_static/dist/assets/index.js");
                 let response = Response::from_string(js)
                     .with_status_code(200)
                     .with_header(tiny_http::Header::from_bytes("Content-Type", "application/javascript; charset=utf-8".as_bytes()).unwrap());
+                let _ = request.respond(response);
+            }
+            "/assets/index.css" => {
+                let css = include_str!("web_static/dist/assets/index.css");
+                let response = Response::from_string(css)
+                    .with_status_code(200)
+                    .with_header(tiny_http::Header::from_bytes("Content-Type", "text/css; charset=utf-8".as_bytes()).unwrap());
                 let _ = request.respond(response);
             }
             "/api/tables" => {
@@ -156,7 +156,7 @@ impl WebUI {
     }
 
     fn render_index(&self) -> String {
-        include_str!("web_static/index.html").to_string()
+        include_str!("web_static/dist/index.html").to_string()
     }
 }
 

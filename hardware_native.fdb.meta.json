@@ -93,31 +93,6 @@
       ]
     },
     {
-      "name": "pitem",
-      "columns": [
-        {
-          "name": "id",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "name",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "price",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "category",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "stock",
-          "data_type": "TEXT"
-        }
-      ]
-    },
-    {
       "name": "address",
       "columns": [
         {

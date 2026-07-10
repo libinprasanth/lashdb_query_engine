@@ -81,9 +81,9 @@ CREATE USER admin IDENTIFIED BY 'secret123'
 
 ## API Endpoints
 
-- `GET /` - Web UI interface
-- `GET /style.css` - CSS styles
-- `GET /script.js` - JavaScript functionality
+- `GET /` - Web UI interface (React app)
+- `GET /assets/index.js` - React JavaScript bundle
+- `GET /assets/index.css` - Tailwind CSS styles
 - `GET /api/tables` - List all tables
 - `GET /api/schema` - Get table schemas
 - `POST /api/query` - Execute SQL query
