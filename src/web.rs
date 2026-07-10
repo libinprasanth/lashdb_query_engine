@@ -2,7 +2,6 @@ use crate::{execute_sql, EngineStorage, Result};
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tiny_http::{Server, Response, Request};
-use std::io::Read;
 
 /// MongoDB Compass-style web UI for database management
 pub struct WebUI {
@@ -40,6 +39,20 @@ impl WebUI {
                 let response = Response::from_string(html)
                     .with_status_code(200)
                     .with_header(tiny_http::Header::from_bytes("Content-Type", "text/html; charset=utf-8".as_bytes()).unwrap());
+                let _ = request.respond(response);
+            }
+            "/style.css" => {
+                let css = include_str!("web_static/style.css");
+                let response = Response::from_string(css)
+                    .with_status_code(200)
+                    .with_header(tiny_http::Header::from_bytes("Content-Type", "text/css; charset=utf-8".as_bytes()).unwrap());
+                let _ = request.respond(response);
+            }
+            "/script.js" => {
+                let js = include_str!("web_static/script.js");
+                let response = Response::from_string(js)
+                    .with_status_code(200)
+                    .with_header(tiny_http::Header::from_bytes("Content-Type", "application/javascript; charset=utf-8".as_bytes()).unwrap());
                 let _ = request.respond(response);
             }
             "/api/tables" => {
@@ -126,44 +139,7 @@ impl WebUI {
     <title>FlashDB - MongoDB Compass Style UI</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
-        .compass-header { background: #0d1117; padding: 12px 24px; display: flex; align-items: center; border-bottom: 1px solid #30363d; }
-        .compass-header .logo { display: flex; align-items: center; gap: 12px; }
-        .compass-header .logo-icon { width: 32px; height: 32px; background: #4db33d; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-        .compass-header h1 { font-size: 18px; font-weight: 600; color: #fff; }
-        .compass-header .connection { margin-left: auto; font-size: 13px; color: #888; }
-        .compass-container { display: flex; height: calc(100vh - 57px); }
-        .compass-sidebar { width: 260px; background: #0d1117; border-right: 1px solid #30363d; overflow-y: auto; }
-        .compass-sidebar-header { padding: 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #888; border-bottom: 1px solid #30363d; }
-        .compass-table-list { padding: 8px 0; }
-        .compass-table-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; transition: all 0.2s; }
-        .compass-table-item:hover { background: #161b22; }
-        .compass-table-item.active { background: #238636; }
-        .compass-table-item .icon { color: #4db33d; font-size: 18px; }
-        .compass-table-item .name { font-size: 14px; color: #fff; }
-        .compass-main { flex: 1; display: flex; flex-direction: column; }
-        .compass-toolbar { padding: 12px 24px; background: #0d1117; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 12px; }
-        .compass-btn { background: #21262d; color: #fff; border: 1px solid #30363d; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-        .compass-btn:hover { background: #30363d; }
-        .compass-btn-primary { background: #238636; border-color: #238636; }
-        .compass-btn-primary:hover { background: #2ea043; }
-        .compass-editor-container { flex: 1; padding: 24px; overflow: hidden; display: flex; flex-direction: column; }
-        .compass-editor { flex: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; font-family: 'Fira Code', monospace; font-size: 14px; color: #c9d1d9; resize: none; }
-        .compass-editor:focus { outline: none; border-color: #238636; }
-        .compass-result { margin-top: 16px; background: #0d1117; border-radius: 6px; border: 1px solid #30363d; max-height: 300px; overflow-y: auto; }
-        .compass-result-header { padding: 10px 16px; background: #161b22; border-bottom: 1px solid #30363d; font-size: 12px; color: #888; }
-        .compass-result-table { width: 100%; border-collapse: collapse; }
-        .compass-result-table th { background: #161b22; padding: 10px 16px; text-align: left; font-weight: 500; color: #4db33d; border-bottom: 1px solid #30363d; font-size: 12px; }
-        .compass-result-table td { padding: 10px 16px; border-bottom: 1px solid #30363d; color: #c9d1d9; font-size: 13px; }
-        .compass-result-table tr:last-child td { border-bottom: none; }
-        .compass-result-table tr:hover { background: #161b22; }
-        .compass-error { background: #da3633; color: #fff; padding: 12px 16px; }
-        .compass-empty { padding: 40px; text-align: center; color: #666; font-size: 14px; }
-        .compass-documents { padding: 16px; }
-        .compass-document { background: #161b22; padding: 12px 16px; border-radius: 4px; margin-bottom: 8px; font-family: monospace; font-size: 12px; }
-    </style>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <header class="compass-header">
@@ -214,115 +190,7 @@ impl WebUI {
         </div>
     </div>
     
-    <script>
-        async function loadTables() {
-            try {
-                const response = await fetch('/api/tables');
-                const tables = await response.json();
-                const html = tables.map(t => `
-                    <div class="compass-table-item" onclick="selectTable('${t.name}')">
-                        <i class="material-icons icon">table_chart</i>
-                        <span class="name">${t.name}</span>
-                    </div>
-                `).join('');
-                document.getElementById('tables').innerHTML = html || '<div class="compass-empty">No tables found</div>';
-            } catch (e) {
-                document.getElementById('tables').innerHTML = '<div class="compass-empty">Error loading tables</div>';
-            }
-        }
-        
-        function selectTable(table) {
-            document.getElementById('sql').value = `SELECT * FROM ${table}`;
-            document.querySelectorAll('.compass-table-item').forEach(el => el.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-        }
-        
-        function setQuery(sql) {
-            document.getElementById('sql').value = sql;
-        }
-        
-        function clearQuery() {
-            document.getElementById('sql').value = '';
-            document.getElementById('result').style.display = 'none';
-        }
-        
-        function formatAsDocuments(result) {
-            try {
-                const data = JSON.parse(result);
-                if (Array.isArray(data) && data.length > 0) {
-                    return data.map((row, idx) => `
-                        <div class="compass-document">
-                            <div style="color: #4db33d; margin-bottom: 8px;">Document ${idx + 1}</div>
-                            <pre style="margin: 0; color: #c9d1d9;">${JSON.stringify(row, null, 2)}</pre>
-                        </div>
-                    `).join('');
-                }
-            } catch (e) {}
-            return `<div class="compass-error">${escapeHtml(result)}</div>`;
-        }
-        
-        function formatAsTable(result) {
-            try {
-                const data = JSON.parse(result);
-                if (Array.isArray(data) && data.length > 0) {
-                    const columns = Object.keys(data[0]);
-                    return `
-                        <table class="compass-result-table">
-                            <thead>
-                                <tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>
-                            </thead>
-                            <tbody>
-                                ${data.map(row => `
-                                    <tr>${columns.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
-                }
-            } catch (e) {}
-            return `<div class="compass-error">${escapeHtml(result)}</div>`;
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        async function executeQuery() {
-            const sql = document.getElementById('sql').value;
-            const resultDiv = document.getElementById('result');
-            const resultContent = document.getElementById('result-content');
-            
-            if (!sql.trim()) {
-                resultDiv.style.display = 'block';
-                resultContent.innerHTML = '<div class="compass-error">Please enter a SQL query</div>';
-                return;
-            }
-            
-            resultDiv.style.display = 'block';
-            resultContent.innerHTML = '<div class="compass-empty">Loading...</div>';
-            
-            try {
-                const response = await fetch('/api/query', {
-                    method: 'POST',
-                    body: sql
-                });
-                const data = await response.json();
-                
-                if (data.error) {
-                    resultContent.innerHTML = `<div class="compass-error">${escapeHtml(data.error)}</div>`;
-                } else {
-                    // Try table format first, then documents
-                    resultContent.innerHTML = formatAsTable(data.result) || formatAsDocuments(data.result);
-                }
-            } catch (e) {
-                resultContent.innerHTML = `<div class="compass-error">Error: ${escapeHtml(e.toString())}</div>`;
-            }
-        }
-        
-        loadTables();
-    </script>
+    <script src="/script.js"></script>
 </body>
 </html>"#.to_string()
     }
