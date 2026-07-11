@@ -147,6 +147,118 @@ impl WebUI {
                 };
                 let _ = request.respond(response);
             }
+            "/api/users" => {
+                let response = match engine.read().load_catalog() {
+                    Ok(catalog) => {
+                        let users: Vec<_> = catalog.users.iter().map(|u| {
+                            serde_json::json!({
+                                "username": u.username,
+                                "hasPassword": u.password.is_some()
+                            })
+                        }).collect();
+                        Response::from_string(serde_json::to_string(&users).unwrap())
+                            .with_status_code(200)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string()});
+                        Response::from_string(json.to_string())
+                            .with_status_code(500)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                };
+                let _ = request.respond(response);
+            }
+            "/api/create-user" => {
+                let mut content = String::new();
+                let _ = request
+                    .as_reader()
+                    .read_to_string(&mut content);
+                
+                let user_data: serde_json::Value = match serde_json::from_str(&content) {
+                    Ok(data) => data,
+                    Err(e) => {
+                        let json = serde_json::json!({"error": format!("Invalid JSON: {}", e)});
+                        let response = Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap());
+                        let _ = request.respond(response);
+                        return;
+                    }
+                };
+                
+                let username = user_data.get("username").and_then(|v| v.as_str()).unwrap_or("");
+                let password = user_data.get("password").and_then(|v| v.as_str());
+                
+                let response = match engine.write().create_user(username, password.map(|s| s.to_string())) {
+                    Ok(()) => {
+                        let json = serde_json::json!({"result": format!("User {} created", username)});
+                        Response::from_string(json.to_string())
+                            .with_status_code(200)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string()});
+                        Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                };
+                let _ = request.respond(response);
+            }
+            "/api/authenticate" => {
+                let mut content = String::new();
+                let _ = request
+                    .as_reader()
+                    .read_to_string(&mut content);
+                
+                let auth_data: serde_json::Value = match serde_json::from_str(&content) {
+                    Ok(data) => data,
+                    Err(e) => {
+                        let json = serde_json::json!({"error": format!("Invalid JSON: {}", e)});
+                        let response = Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap());
+                        let _ = request.respond(response);
+                        return;
+                    }
+                };
+                
+                let username = auth_data.get("username").and_then(|v| v.as_str()).unwrap_or("");
+                let password = auth_data.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                
+                let response = match engine.read().load_catalog() {
+                    Ok(catalog) => {
+                        let user = catalog.users.iter().find(|u| u.username.eq_ignore_ascii_case(username));
+                        if let Some(u) = user {
+                            // Check password if user has one, or allow if no password set
+                            if u.password.is_none() || u.password.as_ref().map(|p| p == password).unwrap_or(false) {
+                                let json = serde_json::json!({"authenticated": true, "username": username});
+                                Response::from_string(json.to_string())
+                                    .with_status_code(200)
+                                    .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                            } else {
+                                let json = serde_json::json!({"authenticated": false, "error": "Invalid password"});
+                                Response::from_string(json.to_string())
+                                    .with_status_code(401)
+                                    .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                            }
+                        } else {
+                            let json = serde_json::json!({"authenticated": false, "error": "User not found"});
+                            Response::from_string(json.to_string())
+                                .with_status_code(401)
+                                .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                        }
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string()});
+                        Response::from_string(json.to_string())
+                            .with_status_code(500)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                };
+                let _ = request.respond(response);
+            }
             _ => {
                 let response = Response::from_string("Not Found")
                     .with_status_code(404);

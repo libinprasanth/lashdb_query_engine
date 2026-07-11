@@ -71,6 +71,15 @@ DROP TABLE products
 CREATE USER admin IDENTIFIED BY 'secret123'
 ```
 
+## Default Credentials
+
+The database comes with a default admin user:
+
+- **Username:** `admin`
+- **Password:** `secret123`
+
+You can use these credentials to log in to the web UI. After logging in, you can create additional users through the User Management interface.
+
 ## Web UI Features
 
 - **Table List**: View all tables in the sidebar
@@ -88,6 +97,8 @@ CREATE USER admin IDENTIFIED BY 'secret123'
 - `GET /api/schema` - Get table schemas
 - `POST /api/query` - Execute SQL query
 - `POST /api/delete-table` - Delete a table (body: table name)
+- `GET /api/users` - List all users
+- `POST /api/create-user` - Create a new user (JSON body: `{username, password}`)
 
 ## Project Structure
 

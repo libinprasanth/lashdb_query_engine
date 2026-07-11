@@ -1,3 +1,71 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles for result display */
+.compass-result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.compass-result-table th {
+  background: #F5F3EF;
+  color: #1a2535;
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #F0EDE8;
+}
+
+.compass-result-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #F0EDE8;
+  color: #1a2535;
+}
+
+.compass-result-table tr:last-child td {
+  border-bottom: none;
+}
+
+.compass-result-table tr:hover {
+  background: #FAF7F2;
+}
+
+.compass-document {
+  background: #F5F3EF;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.compass-document pre {
+  font-size: 11px;
+  overflow-x: auto;
+}
+
+.compass-error {
+  color: #c05050;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.compass-empty {
+  color: #9aa3ad;
+  padding: 12px;
+  font-size: 13px;
+}
+
+/* Spin animation for loading */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
