@@ -24,10 +24,16 @@ pub struct TableSchema {
     pub columns: Vec<ColumnSchema>,
 }
 
+fn default_role() -> String {
+    "user".to_string()
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserRecord {
     pub username: String,
     pub password: Option<String>,
+    #[serde(default = "default_role")]
+    pub role: String,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
@@ -240,7 +246,7 @@ impl EngineStorage {
         Ok(rows)
     }
 
-    pub fn create_user(&mut self, username: &str, password: Option<String>) -> Result<()> {
+    pub fn create_user(&mut self, username: &str, password: Option<String>, role: &str) -> Result<()> {
         let mut catalog = self.load_catalog()?;
         if catalog
             .users
@@ -256,7 +262,44 @@ impl EngineStorage {
         catalog.users.push(UserRecord {
             username: username.to_string(),
             password,
+            role: role.to_string(),
         });
+        self.save_catalog(&catalog)
+    }
+
+    pub fn update_user_password(&mut self, username: &str, new_password: Option<String>) -> Result<()> {
+        let mut catalog = self.load_catalog()?;
+        let user = catalog
+            .users
+            .iter_mut()
+            .find(|user| user.username.eq_ignore_ascii_case(username))
+            .ok_or_else(|| Error::new(ErrorKind::NotFound, format!("user not found: {}", username)))?;
+        user.password = new_password;
+        self.save_catalog(&catalog)
+    }
+
+    pub fn delete_user(&mut self, username: &str) -> Result<()> {
+        let mut catalog = self.load_catalog()?;
+        let initial_len = catalog.users.len();
+        catalog.users.retain(|user| !user.username.eq_ignore_ascii_case(username));
+        
+        if catalog.users.len() == initial_len {
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                format!("user not found: {}", username),
+            ));
+        }
+        self.save_catalog(&catalog)
+    }
+
+    pub fn update_user_role(&mut self, username: &str, new_role: &str) -> Result<()> {
+        let mut catalog = self.load_catalog()?;
+        let user = catalog
+            .users
+            .iter_mut()
+            .find(|user| user.username.eq_ignore_ascii_case(username))
+            .ok_or_else(|| Error::new(ErrorKind::NotFound, format!("user not found: {}", username)))?;
+        user.role = new_role.to_string();
         self.save_catalog(&catalog)
     }
 

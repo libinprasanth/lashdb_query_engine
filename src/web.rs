@@ -153,7 +153,8 @@ impl WebUI {
                         let users: Vec<_> = catalog.users.iter().map(|u| {
                             serde_json::json!({
                                 "username": u.username,
-                                "hasPassword": u.password.is_some()
+                                "hasPassword": u.password.is_some(),
+                                "role": u.role
                             })
                         }).collect();
                         Response::from_string(serde_json::to_string(&users).unwrap())
@@ -189,10 +190,71 @@ impl WebUI {
                 
                 let username = user_data.get("username").and_then(|v| v.as_str()).unwrap_or("");
                 let password = user_data.get("password").and_then(|v| v.as_str());
+                let role = user_data.get("role").and_then(|v| v.as_str()).unwrap_or("user");
                 
-                let response = match engine.write().create_user(username, password.map(|s| s.to_string())) {
+                let response = match engine.write().create_user(username, password.map(|s| s.to_string()), role) {
                     Ok(()) => {
                         let json = serde_json::json!({"result": format!("User {} created", username)});
+                        Response::from_string(json.to_string())
+                            .with_status_code(200)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string()});
+                        Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                };
+                let _ = request.respond(response);
+            }
+            "/api/update-password" => {
+                let mut content = String::new();
+                let _ = request
+                    .as_reader()
+                    .read_to_string(&mut content);
+                
+                let data: serde_json::Value = match serde_json::from_str(&content) {
+                    Ok(d) => d,
+                    Err(e) => {
+                        let json = serde_json::json!({"error": format!("Invalid JSON: {}", e)});
+                        let response = Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap());
+                        let _ = request.respond(response);
+                        return;
+                    }
+                };
+                
+                let username = data.get("username").and_then(|v| v.as_str()).unwrap_or("");
+                let new_password = data.get("newPassword").and_then(|v| v.as_str());
+                
+                let response = match engine.write().update_user_password(username, new_password.map(|s| s.to_string())) {
+                    Ok(()) => {
+                        let json = serde_json::json!({"result": format!("Password updated for {}", username)});
+                        Response::from_string(json.to_string())
+                            .with_status_code(200)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string()});
+                        Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                };
+                let _ = request.respond(response);
+            }
+            "/api/delete-user" => {
+                let mut content = String::new();
+                let _ = request
+                    .as_reader()
+                    .read_to_string(&mut content);
+                
+                let username = content.trim();
+                let response = match engine.write().delete_user(username) {
+                    Ok(()) => {
+                        let json = serde_json::json!({"result": format!("User {} deleted", username)});
                         Response::from_string(json.to_string())
                             .with_status_code(200)
                             .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
@@ -212,8 +274,76 @@ impl WebUI {
                     .as_reader()
                     .read_to_string(&mut content);
                 
-                let auth_data: serde_json::Value = match serde_json::from_str(&content) {
-                    Ok(data) => data,
+                let data: serde_json::Value = match serde_json::from_str(&content) {
+                    Ok(d) => d,
+                    Err(e) => {
+                        let json = serde_json::json!({"error": format!("Invalid JSON: {}", e), "authenticated": false});
+                        let response = Response::from_string(json.to_string())
+                            .with_status_code(400)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap());
+                        let _ = request.respond(response);
+                        return;
+                    }
+                };
+                
+                let username = data.get("username").and_then(|v| v.as_str()).unwrap_or("");
+                let password = data.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                
+                let response = match engine.read().load_catalog() {
+                    Ok(catalog) => {
+                        let user = catalog.users.iter().find(|u| u.username.eq_ignore_ascii_case(username));
+                        if let Some(user) = user {
+                            if let Some(user_password) = &user.password {
+                                if user_password == password {
+                                    let json = serde_json::json!({
+                                        "authenticated": true,
+                                        "username": username,
+                                        "role": user.role
+                                    });
+                                    Response::from_string(json.to_string())
+                                        .with_status_code(200)
+                                        .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                                } else {
+                                    let json = serde_json::json!({"error": "Invalid password", "authenticated": false});
+                                    Response::from_string(json.to_string())
+                                        .with_status_code(401)
+                                        .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                                }
+                            } else {
+                                // User has no password set, allow any password
+                                let json = serde_json::json!({
+                                    "authenticated": true,
+                                    "username": username,
+                                    "role": user.role
+                                });
+                                Response::from_string(json.to_string())
+                                    .with_status_code(200)
+                                    .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                            }
+                        } else {
+                            let json = serde_json::json!({"error": "User not found", "authenticated": false});
+                            Response::from_string(json.to_string())
+                                .with_status_code(404)
+                                .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                        }
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string(), "authenticated": false});
+                        Response::from_string(json.to_string())
+                            .with_status_code(500)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
+                    }
+                };
+                let _ = request.respond(response);
+            }
+            "/api/update-role" => {
+                let mut content = String::new();
+                let _ = request
+                    .as_reader()
+                    .read_to_string(&mut content);
+                
+                let data: serde_json::Value = match serde_json::from_str(&content) {
+                    Ok(d) => d,
                     Err(e) => {
                         let json = serde_json::json!({"error": format!("Invalid JSON: {}", e)});
                         let response = Response::from_string(json.to_string())
@@ -224,36 +354,20 @@ impl WebUI {
                     }
                 };
                 
-                let username = auth_data.get("username").and_then(|v| v.as_str()).unwrap_or("");
-                let password = auth_data.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                let username = data.get("username").and_then(|v| v.as_str()).unwrap_or("");
+                let new_role = data.get("newRole").and_then(|v| v.as_str()).unwrap_or("user");
                 
-                let response = match engine.read().load_catalog() {
-                    Ok(catalog) => {
-                        let user = catalog.users.iter().find(|u| u.username.eq_ignore_ascii_case(username));
-                        if let Some(u) = user {
-                            // Check password if user has one, or allow if no password set
-                            if u.password.is_none() || u.password.as_ref().map(|p| p == password).unwrap_or(false) {
-                                let json = serde_json::json!({"authenticated": true, "username": username});
-                                Response::from_string(json.to_string())
-                                    .with_status_code(200)
-                                    .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
-                            } else {
-                                let json = serde_json::json!({"authenticated": false, "error": "Invalid password"});
-                                Response::from_string(json.to_string())
-                                    .with_status_code(401)
-                                    .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
-                            }
-                        } else {
-                            let json = serde_json::json!({"authenticated": false, "error": "User not found"});
-                            Response::from_string(json.to_string())
-                                .with_status_code(401)
-                                .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
-                        }
+                let response = match engine.write().update_user_role(username, new_role) {
+                    Ok(()) => {
+                        let json = serde_json::json!({"result": format!("Role updated for {}", username)});
+                        Response::from_string(json.to_string())
+                            .with_status_code(200)
+                            .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
                     }
                     Err(e) => {
                         let json = serde_json::json!({"error": e.to_string()});
                         Response::from_string(json.to_string())
-                            .with_status_code(500)
+                            .with_status_code(400)
                             .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json".as_bytes()).unwrap())
                     }
                 };
@@ -271,6 +385,7 @@ impl WebUI {
         include_str!("web_static/dist/index.html").to_string()
     }
 }
+
 
 impl EngineStorage {
     /// Execute SQL (for web UI)

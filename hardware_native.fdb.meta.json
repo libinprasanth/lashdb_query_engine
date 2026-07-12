@@ -1,98 +1,6 @@
 {
   "tables": [
     {
-      "name": "products",
-      "columns": [
-        {
-          "name": "id",
-          "data_type": "INT"
-        },
-        {
-          "name": "name",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "price",
-          "data_type": "FLOAT"
-        }
-      ]
-    },
-    {
-      "name": "product",
-      "columns": [
-        {
-          "name": "id",
-          "data_type": "INTEGER"
-        },
-        {
-          "name": "name",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "price",
-          "data_type": "REAL"
-        },
-        {
-          "name": "category",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "stock",
-          "data_type": "INTEGER"
-        }
-      ]
-    },
-    {
-      "name": "productinfo",
-      "columns": [
-        {
-          "name": "id",
-          "data_type": "INTEGER"
-        },
-        {
-          "name": "name",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "price",
-          "data_type": "REAL"
-        },
-        {
-          "name": "category",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "stock",
-          "data_type": "INTEGER"
-        }
-      ]
-    },
-    {
-      "name": "productinfos",
-      "columns": [
-        {
-          "name": "id",
-          "data_type": "INT"
-        },
-        {
-          "name": "name",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "price",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "category",
-          "data_type": "TEXT"
-        },
-        {
-          "name": "stock",
-          "data_type": "TEXT"
-        }
-      ]
-    },
-    {
       "name": "address",
       "columns": [
         {
@@ -109,7 +17,13 @@
   "users": [
     {
       "username": "admin",
-      "password": "secret123"
+      "password": "secret123",
+      "role": "user"
+    },
+    {
+      "username": "libin",
+      "password": "test",
+      "role": "user"
     }
   ]
 }

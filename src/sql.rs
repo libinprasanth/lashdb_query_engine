@@ -104,7 +104,7 @@ fn execute_create_user(engine: &mut EngineStorage, sql: &str) -> Result<String> 
             .to_string()
     });
 
-    engine.create_user(&username, password)?;
+    engine.create_user(&username, password, "user")?;
     Ok(format!("USER {} CREATED", username))
 }
 

@@ -12,7 +12,18 @@ function App() {
   const [showResult, setShowResult] = useState(false);
   const [activeTable, setActiveTable] = useState(null);
 
+  // Check for existing session on mount
   useEffect(() => {
+    const storedUser = localStorage.getItem('flashdb_user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        setIsAuthenticated(true);
+      } catch (e) {
+        localStorage.removeItem('flashdb_user');
+      }
+    }
     loadTables();
   }, []);
 
@@ -134,11 +145,15 @@ function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
+    // Persist session to localStorage
+    localStorage.setItem('flashdb_user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
     setUser(null);
     setIsAuthenticated(false);
+    // Clear session from localStorage
+    localStorage.removeItem('flashdb_user');
   };
 
   // If not authenticated, show login screen
